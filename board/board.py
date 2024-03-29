@@ -64,6 +64,11 @@ canvas.create_image(3 * 50 + 25, 0 * 50 + 25, image=piece_images["black queen"])
 canvas.create_image(4 * 50 + 25, 0 * 50 + 25, image=piece_images["black king"])
 
 
+def place_piece(column, row, piece):
+    piece_id = canvas.create_image(column * 50 + 25, row * 50 + 25, image=piece_images[piece])
+    if piece.startswith('white'):
+        canvas.itemconfig(piece_id, tags=('white',))  # Assigning the 'white' tag to white pieces
+
 
 
 
@@ -76,11 +81,10 @@ def select_piece(event):
     global selected_piece, offset_x, offset_y
     item = canvas.find_closest(event.x, event.y)
     piece_tags = canvas.gettags(item)  # Get tags associated with the clicked item
-    if 'white' in piece_tags:  # Check if the clicked piece is white
-        selected_piece = item[0]
-        x0, y0, _, _ = canvas.coords(selected_piece)
-        offset_x = event.x - x0
-        offset_y = event.y - y0
+    selected_piece = item[0]
+    x0, y0, _, _ = canvas.coords(selected_piece)
+    offset_x = event.x - x0
+    offset_y = event.y - y0
 
 
 def move_piece(event):
