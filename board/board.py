@@ -1,4 +1,4 @@
-import tkinter as tk
+ximport tkinter as tk
 from from_root import from_here
 
 # Link image directory
