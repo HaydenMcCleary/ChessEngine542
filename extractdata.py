@@ -1,12 +1,10 @@
 import jsonlines
 
 # Path to your JSONL file
-file_path = "training_data/output_1.jsonl"
+file_path = "training_set/output_1.jsonl"
 
-# Lists to store extracted data
-fen_positions = []
-lines_of_moves = []
-evaluation_scores = []
+# Dictionary to store extracted data
+data_dict = {}
 
 # Open the JSONL file for reading
 with jsonlines.open(file_path, "r") as reader:
@@ -14,25 +12,25 @@ with jsonlines.open(file_path, "r") as reader:
     for line in reader:
         # Extract FEN position for this line
         fen_position = line.get("fen")
-        fen_positions.append(fen_position)
         
         # Extract evaluations and associated lines of moves
+        eval_moves = []
         for eval_data in line["evals"]:
             for pv in eval_data["pvs"]:
                 # Extract line of moves and evaluation score
                 line_moves = pv["line"]
                 eval_score = pv.get("cp")
                 
-                # Store line of moves and evaluation score
-                lines_of_moves.append(line_moves)
-                evaluation_scores.append(eval_score)
+                # Append line of moves and evaluation score to the list
+                eval_moves.append((line_moves, eval_score))
+        
+        # Store the list of evaluation moves in the dictionary
+        data_dict[fen_position] = eval_moves
 
-
-
-
-# print to check
-for fen, line, score in zip(fen_positions, lines_of_moves, evaluation_scores):
+# Print to check
+for fen, eval_moves in data_dict.items():
     print("FEN Position:", fen)
-    print("Line of Moves:", line)
-    print("Evaluation Score:", score)
+    for move, score in eval_moves:
+        print("Line of Moves:", move)
+        print("Evaluation Score:", score)
     print()
