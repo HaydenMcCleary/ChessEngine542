@@ -1,5 +1,7 @@
-ximport tkinter as tk
+import tkinter as tk
 from from_root import from_here
+import chess
+from boardtracker import islegal
 
 # Link image directory
 image_dir = from_here("images")
@@ -12,10 +14,11 @@ root.title("Chess Game")
 canvas = tk.Canvas(root, width=400, height=400)
 canvas.pack()
 
+
 # Draw the chessboard squares
 for i in range(8):
     for j in range(8):
-        color = "white" if (i + j) % 2 == 0 else "gray"
+        color = "white" if (i + j) % 2 == 0 else "pink"
         canvas.create_rectangle(j * 50, i * 50, (j + 1) * 50, (i + 1) * 50, fill=color)
 
 # Load piece images
@@ -35,41 +38,37 @@ piece_images = {
     "black queen": tk.PhotoImage(file=str(image_dir / "bQ.png")),
 }
 
-# Place pieces on the board
-# Example: canvas.create_image(x_position, y_position, image=piece_images["pawn"])
-
-for column in range(8):
-    canvas.create_image(column * 50 + 25, 6 * 50 + 25, image=piece_images["white pawn"])
-canvas.create_image(0 * 50 + 25, 7 * 50 + 25, image=piece_images["white rook"])
-canvas.create_image(7 * 50 + 25, 7 * 50 + 25, image=piece_images["white rook"])
-canvas.create_image(1 * 50 + 25, 7 * 50 + 25, image=piece_images["white knight"])
-canvas.create_image(6 * 50 + 25, 7 * 50 + 25, image=piece_images["white knight"])
-canvas.create_image(2 * 50 + 25, 7 * 50 + 25, image=piece_images["white bishop"])
-canvas.create_image(5 * 50 + 25, 7 * 50 + 25, image=piece_images["white bishop"])
-canvas.create_image(3 * 50 + 25, 7 * 50 + 25, image=piece_images["white queen"])
-canvas.create_image(4 * 50 + 25, 7 * 50 + 25, image=piece_images["white king"])
-
-#to do fill in the rest of this
-
-
-for column in range(8):
-    canvas.create_image(column * 50 + 25, 1 * 50 + 25, image=piece_images["black pawn"])
-canvas.create_image(0 * 50 + 25, 0 * 50 + 25, image=piece_images["black rook"])
-canvas.create_image(7 * 50 + 25, 0 * 50 + 25, image=piece_images["black rook"])
-canvas.create_image(1 * 50 + 25, 0 * 50 + 25, image=piece_images["black knight"])
-canvas.create_image(6 * 50 + 25, 0 * 50 + 25, image=piece_images["black knight"])
-canvas.create_image(2 * 50 + 25, 0 * 50 + 25, image=piece_images["black bishop"])
-canvas.create_image(5 * 50 + 25, 0 * 50 + 25, image=piece_images["black bishop"])
-canvas.create_image(3 * 50 + 25, 0 * 50 + 25, image=piece_images["black queen"])
-canvas.create_image(4 * 50 + 25, 0 * 50 + 25, image=piece_images["black king"])
-
 
 def place_piece(column, row, piece):
     piece_id = canvas.create_image(column * 50 + 25, row * 50 + 25, image=piece_images[piece])
     if piece.startswith('white'):
-        canvas.itemconfig(piece_id, tags=('white',))  # Assigning the 'white' tag to white pieces
+        canvas.itemconfig(piece_id, tags=('white',)) 
+    elif piece.startswith('black'):
+        canvas.itemconfig(piece_id, tags=('black',))  # Assigning the 'black' tag to black pieces
 
 
+place_piece(0, 7, "white rook")
+place_piece(1, 7, "white knight")
+place_piece(2, 7, "white bishop")
+place_piece(3, 7, "white queen")
+place_piece(4, 7, "white king")
+place_piece(5, 7, "white bishop")
+place_piece(6, 7, "white knight")
+place_piece(7, 7, "white rook")
+for i in range(8):
+    place_piece(i, 6, "white pawn")
+
+# Place remaining black pieces on the board
+place_piece(0, 0, "black rook")
+place_piece(1, 0, "black knight")
+place_piece(2, 0, "black bishop")
+place_piece(3, 0, "black queen")
+place_piece(4, 0, "black king")
+place_piece(5, 0, "black bishop")
+place_piece(6, 0, "black knight")
+place_piece(7, 0, "black rook")
+for i in range(8):
+    place_piece(i, 1, "black pawn")
 
 
 # Functions for piece movement
@@ -77,15 +76,20 @@ selected_piece = None
 offset_x = 0
 offset_y = 0
 
-def select_piece(event):
-    global selected_piece, offset_x, offset_y
-    item = canvas.find_closest(event.x, event.y)
-    piece_tags = canvas.gettags(item)  # Get tags associated with the clicked item
-    selected_piece = item[0]
-    x0, y0, _, _ = canvas.coords(selected_piece)
-    offset_x = event.x - x0
-    offset_y = event.y - y0
+def number_to_column(num):
+    return chr(ord('a') + num - 1)
 
+
+def select_piece(event):
+    global selected_piece, offset_x, offset_y, past_column, past_row  # Add past_column and past_row to global
+    item = canvas.find_closest(event.x, event.y)
+    if item:
+        selected_piece = item[0]
+        x0, y0 = canvas.coords(selected_piece)[:2]
+        offset_x = event.x - x0
+        offset_y = event.y - y0
+        past_row = int(y0 / 50)
+        past_column = int(x0 / 50)
 
 def move_piece(event):
     global selected_piece
@@ -94,13 +98,45 @@ def move_piece(event):
 
 def release_piece(event):
     global selected_piece
+    global past_column 
+    global past_row
+
     if selected_piece:
         x = event.x - offset_x
         y = event.y - offset_y
+        
         column = int(x / 50)
         row = int(y / 50)
-        canvas.coords(selected_piece, column * 50 + 25, row * 50 + 25)
-        selected_piece = None
+
+        past_column_letter = number_to_column(past_column)
+        column_letter = number_to_column(column)
+
+        move = past_column_letter.lower() + str(8 - past_row) + column_letter.lower() + str(8 - row)
+
+        if islegal(move):
+
+            destination_x = column * 50 + 25
+            destination_y = row * 50 + 25
+            
+            overlapping_pieces = canvas.find_overlapping(destination_x , destination_y , destination_x, destination_y )
+            
+            for item in overlapping_pieces:
+                tags = canvas.gettags(item)
+                if ('black' in tags or 'white' in tags) and item != selected_piece:                # Capture the piece or perform any other action
+                    canvas.delete(item)
+            
+            canvas.coords(selected_piece, destination_x, destination_y)
+            selected_piece = None
+
+        else:
+            
+            destination_x = past_column * 50 + 25
+            destination_y = past_row * 50 + 25
+            canvas.coords(selected_piece, destination_x, destination_y)
+            selected_piece = None
+            past_row = int(0)     # Store the past row
+            past_column = int(0)  # Store the past column
+        
 
 # Bind mouse events
 canvas.bind("<Button-1>", select_piece)
@@ -109,4 +145,3 @@ canvas.bind("<ButtonRelease-1>", release_piece)
 # Start the Tkinter event loop
 root.mainloop()
 
-images/wR.png
