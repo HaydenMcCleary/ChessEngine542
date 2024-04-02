@@ -14,6 +14,8 @@ root.title("Chess Game")
 canvas = tk.Canvas(root, width=400, height=400)
 canvas.pack()
 
+     board = chess.Board()
+     moves = []
 
 # Draw the chessboard squares
 for i in range(8):
@@ -112,8 +114,14 @@ def release_piece(event):
         column_letter = number_to_column(column)
 
         move = past_column_letter.lower() + str(8 - past_row) + column_letter.lower() + str(8 - row)
+        user_move = chess.Move.from_uci(move)
 
-        if islegal(move):
+        if(islegal(user_move, board)):
+
+
+            board.push(move)
+            moves.append(move)
+
 
             destination_x = column * 50 + 25
             destination_y = row * 50 + 25
@@ -127,6 +135,8 @@ def release_piece(event):
             
             canvas.coords(selected_piece, destination_x, destination_y)
             selected_piece = None
+            past_row = int(0)     # Store the past row
+            past_column = int(0)  # Store the past column
 
         else:
             
