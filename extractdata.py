@@ -14,23 +14,26 @@ with jsonlines.open(file_path, "r") as reader:
         fen_position = line.get("fen")
         
         # Extract evaluations and associated lines of moves
-        eval_moves = []
+        high_score = 0  # Initialize with negative infinity to ensure the first score is always higher
+        best_move = ""
+        
         for eval_data in line["evals"]:
             for pv in eval_data["pvs"]:
                 # Extract line of moves and evaluation score
                 line_moves = pv["line"]
                 eval_score = pv.get("cp")
                 
-                # Append line of moves and evaluation score to the list
-                eval_moves.append((line_moves, eval_score))
+                # Check if eval_score is not None before comparing with the high_score
+                if eval_score is not None and abs(eval_score) > abs(high_score):
+                    high_score = eval_score
+                    best_move = line_moves
         
-        # Store the list of evaluation moves in the dictionary
-        data_dict[fen_position] = eval_moves
+        # Store the best move and its evaluation score in the dictionary
+        data_dict[fen_position] = (best_move, high_score)
 
 # Print to check
-for fen, eval_moves in data_dict.items():
+for fen, (move, score) in data_dict.items():
     print("FEN Position:", fen)
-    for move, score in eval_moves:
-        print("Line of Moves:", move)
-        print("Evaluation Score:", score)
+    print("Line of Moves:", move)
+    print("Evaluation Score:", score)
     print()
