@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import numpy as np
 import chess
+import csv
 
 def fen_to_matrix(fen_str):
     # Initialize an empty 8x8 matrix
@@ -12,8 +13,8 @@ def fen_to_matrix(fen_str):
 
     # Map piece types to numerical values
     piece_values = {
-    'p': 1, 'P': 2, 'n': 3, 'N': 4, 'b': 5, 'B': 6, 'r': 7, 'R': 8,
-    'q': 9, 'Q': 10, 'k': 11, 'K': 12
+    'p': 1, 'P': -1, 'n': 2, 'N': -2, 'b': 3, 'B': -3, 'r': 4, 'R': -4,
+    'q': 5, 'Q': -5, 'k': 6, 'K': -6
     }
 
     # Fill the matrix with piece values
@@ -24,24 +25,28 @@ def fen_to_matrix(fen_str):
             if piece:
                 board_matrix[rank, file] = piece_values[piece.symbol()]
 
-    return board_matrix
+    return board_matrix    
 
 # Function to read CSV file and convert data to numerical representations
 def convert_csv_to_numeric(filename):
-    data = pd.read_csv(filename, header=None)
     positions = []
     moves = []
-    for i in range(len(data)):
-        fen_with_moves = data.iloc[i, 0].split(',')
-        fen = fen_with_moves[0]  # Extract FEN position
-        move_list = fen_with_moves[1:]  # Extract moves
-        positions.append(fen_to_matrix(fen))
-        moves.append(move_list)  # Append moves without conversion
+    with open(filename, 'r') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            fen = row[0]
+            move_list = row[1]
+            positions.append(fen_to_matrix(fen))
+            moves.append(move_list)  # Append moves without conversion
     return positions, moves
-
-
 
 # Example usage
 positions, moves = convert_csv_to_numeric('training_set/small_test.csv')
-print(positions)
-print(moves)
+
+# Print the positions and moves
+for i in range(len(positions)):
+    print("Position:")
+    print(positions[i])
+    print("Moves:")
+    print(moves[i])
+    print("-----------------")
