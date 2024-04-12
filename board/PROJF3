@@ -56,7 +56,7 @@ def move_to_vec(move,board): #being able to read moves is nice as well
         return re.sub('\d*\. ', '',s).split(' ' )[:-1]
 
 
-chess_data_unfiltered = pd.read_csv('/content/training_set/training_data.csv') ##optional, lets make this dataset smaller by filtering losers who don't play the game as much as others.
+chess_data_train = pd.read_csv('/content/training_set/training_data.csv') ##optional, lets make this dataset smaller by filtering losers who don't play the game as much as others.
 ##chess_data_train = chess_data_unfiltered[chess_data_raw['WhiteElo'] > 2100]
 ##chess_data_train = chess_data_train[['AN']]
 ##chess_data_train = chess_data_train[-chess_data_train['AN'].str.contains('{')]
