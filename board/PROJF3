@@ -1,0 +1,200 @@
+!pip install stockfish
+import Stockfish   ##we've gone through a few iterations in our process. this is far from a baseline.
+import numpy as np
+import matplotlib.pyplot as plt
+import chess
+import stockfish #first we tried importing FEN data from lichess and had issues, so we tried using stockfish to train against an AI player continuously, and again had issues.
+import torch
+import chess.pgn
+import chess.engine
+import csv
+import kaggle
+
+letter_to_number = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h': 8}
+number_to_letter = {value: key for key, value in letter_to_number.items()}
+
+def board_to_vec(board):                #we need to vectorize board data to be able to read it in the CNN
+    pieces = ['p','r','n','b','q','k']
+    layers = []
+    for piece in pieces:
+        layers.append(create_vec_layer(board,piece))
+    board_rep = np.stack(layers)
+    return board_vec
+
+def create_vec_layer(board, type):   #vectorizing also requires differentiation between unit types and colors into multiple layers.
+
+        s = str(board)
+        s = re.sub(f'[^{type}{type.upper()} \n]', '.', s)
+        s = re.sub(f'{type}', '-1', s)
+        s = re.sub(f'{type.upper()}', '1', s)
+        s = re.sub(f'\.', '0', s)
+
+        board_mat = []
+        for row in s.split('\n'):
+            row = row.split(' ')
+            row = [int(x) for x in row]
+            board_mat.append(row)
+
+        return np.array(board_mat)
+
+def move_to_vec(move,board): #being able to read moves is nice as well
+    board.push_san(move).uci()
+    move = str(board.pop())
+    from_output_layer = np.zeros((8,8))
+    from_output_layer = np.zeros((8,8))
+    from_row = 8 - int(move[1])
+    from_column = letter_to_number[move[0]]
+    from_output_layer[from_row,from_column] = 1
+    to_output_layer = np.zeros((8,8))
+    to_row = 8 - int(move[3])
+    to_column = letter_to_number[move[2]]
+    to_output_layer[to_row,to_column] = 1
+
+    return np.stack([from_output_layer, to_output_layer])
+
+    def create_move_list(s):
+        return re.sub('\d*\. ', '',s).split(' ' )[:-1]
+
+
+chess_data_unfiltered = pd.read_csv('/content/training_set/training_data.csv') ##optional, lets make this dataset smaller by filtering losers who don't play the game as much as others.
+##chess_data_train = chess_data_unfiltered[chess_data_raw['WhiteElo'] > 2100]
+##chess_data_train = chess_data_train[['AN']]
+##chess_data_train = chess_data_train[-chess_data_train['AN'].str.contains('{')]
+##chess_data_train = chess_data_train[chess_data_train['AN'].str.len() > 18]
+##del chess_data_raw
+##gc.collect()  ##lets also clean up some garbage to make things easier
+
+
+
+
+class ChessDataset(Dataset):
+    def __init__(self, games):
+        super(ChessDataset, self).__init__()
+        self.games = games  # Storing the games as an instance variable
+
+    def __len__(self):
+          return 10_000
+
+    def __getitem__(self,index):
+        game_i = np.random.randint(self.games.shape[0])
+        random_game = chess_data_train['AN'].values[game_i]
+        moves = create_move_list(random_game)
+        game_state_i = np.random.randint(len(moves)-1)
+        next_move = moves[game_state_i]
+        moves = moves[:game_state_i]
+        board = chess.Board()
+        for move in moves:
+            board.push_san(move)
+        x = board_to_vec(board)
+        y = move_to_vec(next_move,board)
+        if game_state_i % 2 == 1:                   ##make sure it's white's turn
+            x *= -1
+        return x,y
+
+
+    data_train = cheeseDataset(chess_data_train['AN'])
+    data_train_set = DataLoader(data_train, batch_size=32, shuffle = True, drop_last=True)
+
+class ChessTestDataset(Dataset):
+    def __init__(self, size, hidden_size):
+        self.size = size
+        self.hidden_size = hidden_size
+
+    def __len__(self):
+        return self.size
+
+    def __getitem__(self, index):
+        # Generate dummy input data (tensor of shape [hidden_size, height, width])
+        x = torch.randn(self.hidden_size, 8, 8)
+        # Generate dummy label data (tensor of shape [hidden_size, height, width])
+        y = torch.randn(self.hidden_size, 8, 8)
+        return x, y
+
+class module(nn.Module):
+
+    def __init__(self, hidden_size):
+        super(module,self).__init__()
+        self.conv1 = nn.Conv2d(hidden_size, hidden_size, 3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(hidden_size, hidden_size, 3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(hidden_size)
+        self.bn2 = nn.BatchNorm2d(hidden_size)
+        self.activation = nn.SELU()
+        self.activation21 = nn.SELU()
+    def forward(self, x):
+        x_input = torch.clone(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.activation1(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.activation2(x)
+        return x
+
+metric_from = nn.CrossEntropyLoss()
+metrics_to == nn.CrossEntropyLoss()
+loss_from = metric_from(output[:,0,:], y[:,0,:])
+loss_to = metric_to(output[:,1,:], y[:,1,:])
+loss = loss_from + loss_to
+
+model.eval()  # Set the model to evaluation mode
+with torch.no_grad():  # Disable gradient calculation for inference
+    for inputs, labels in test_loader:
+        # Forward pass
+        outputs = model(inputs)
+        # Perform any evaluation or logging here
+
+
+def check_mate_single(board):
+    board = board.copy()
+    legal_moves = list(board.legal)
+    for move in legal_moves:
+        board.push_uci(str(move))
+        if board.is_checkmate():
+            move = board.pop()
+            return move
+        _ = board.pop()
+
+def distribution_over_moves(vals):
+    probs = np.array(vals)
+    probs = np.exp(probs)
+    probs = probs / probs.sum()
+    probs = probs ** 3
+    probs = probs / probs.sum()
+    return probs
+
+def choose_moves(board, player, color):
+    legal_move = list(board.legal_moves)
+    move = check_mate_single(board)
+    if move is not None:
+        return move
+
+    x = torch.Tensor(board_to_vec(board)).float().to('cuda')
+    if color == chess.BLACK:
+        x *= -1
+    x = x.unsqueeze(0)
+    move = predict(x)
+
+vals = []
+[str(legal_move)[:2] for legal_move in legal_moves]
+froms = list(set(froms))
+for from_ in froms:
+    vals = move[0,:,:][8 - int(from_position[1]), letter_to_number[from_position[0]]]
+    vals.append(val)
+
+probs = distribution_over_moves(vals)
+
+chosen_from = str(np.random.choice(froms, size=1, p=probs)[0])[:2]
+
+chosen_from = str(np.random.choice(froms,size=1, p=probs)[0])[:2]
+vals = []
+for legal_move in legal_moves:
+    from_ = str(legal_move)[:2]
+    if from_ == chosen_from:
+        to = str(legal_move)[2:]
+        val = move[1,:,:][8 - int(to[1]), letter_to_number[to[0]]]
+        vals.append(val)
+    else:
+        vals.append(0)
+
+chosen_move = legal_moves[np.argmax(vals)]
+return chosen_move
