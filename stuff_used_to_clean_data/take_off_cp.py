@@ -1,3 +1,5 @@
+import os
+
 def clean_csv(input_file, output_file):
     with open(input_file, 'r') as f:
         lines = f.readlines()
@@ -11,7 +13,10 @@ def clean_csv(input_file, output_file):
         f.write('\n'.join(cleaned_lines))
 
 # Usage example:
-input_file = "training_set/training_data1.csv"
-output_file = "training_set/training_data1_nocp.csv"
-clean_csv(input_file, output_file)
-print("CSV file cleaned and saved as", output_file)
+
+for i in range (1, 670):
+    input_file = f"training_set/black/output_file_{i}.csv"
+    output_file = f"training_set/black/output_file_{i}_nocp.csv"
+    clean_csv(input_file, output_file)
+    print("CSV file cleaned and saved as", output_file)
+    os.remove(input_file)  # Delete the input file after processing
